@@ -1,5 +1,6 @@
 #set working directory to the project root folder
 setwd(paste0(dirname(parent.frame(2)$ofile), "/.."))
+
 #download corpus and unzip
 dir.create("data", showWarnings = FALSE)
 dir.create("data/raw", showWarnings = FALSE)
