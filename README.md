@@ -10,6 +10,6 @@ The project consisted on several parts:
   5. Testing and evaluating the model
   6. Building the UI (shiny app)
 
-The [shiny app](https://bik-tor.shinyapps.io/text-prediction/) was the final product of the project, which provides an interface to access the prediction algorithm that I've built.
+The [shiny app](https://bik-tor.shinyapps.io/text-prediction/) was the final deliverable product of the project, which provides an interface to access the prediction algorithm that I've built.
 
 

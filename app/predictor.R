@@ -41,7 +41,11 @@ filter <- c("<URL>", "<U>", "<S>", "<NN>", "<ON>", "<N>", "<T>" , "<D>", "<PN>",
 
 
 #clean a single chunk of text
-cleanText <- function(txt) {
+cleanText <- function(txt, stemming = F) {
+	#stem text
+	if (stemming) {
+		txt <- stemText(txt)
+	}
 	#short form of common names: st., av., mr, etc.., remove periods
 	txt <- gsub("\\s([A-Z])\\.\\s", " \\1", txt)
 	txt <- gsub("\\s([A-Z][a-z]{1,3})\\.\\s", " \\1", txt)
@@ -50,7 +54,7 @@ cleanText <- function(txt) {
 	#lower case text
 	txt <- stri_trans_tolower(txt)
 	#remove smileys
-	txt <- gsub(":d|d:|<3|</3|\\bxd\\b|\\bx-d\\b|:&|:-&|:p\\b|:-p\\b|\\b=p\\b|\\b:d\\b|;d\\b|\\b:o\\)\\b|\\b8\\)|\\b8d\\b|\\b8-d\\b|:3\\b|:-x\\b|:x\\b|:o\\)|:-d\\b|:-o\\b|:o\\b|o_o\\b|o-o\\b|=p\\b|:s\\b|\\bd:", " ", txt)
+	txt <- gsub("<3|</3|\\bxd\\b|\\bx-d\\b|:&|:-&|:p\\b|:-p\\b|\\b=p\\b|\\b:d\\b|;d\\b|\\b:o\\)\\b|\\b8\\)|\\b8d\\b|\\b8-d\\b|:3\\b|:-x\\b|:x\\b|:o\\)|:-d\\b|:-o\\b|:o\\b|o_o\\b|o-o\\b|=p\\b|:s\\b|\\bd:", " ", txt)
 	# remove lower greater symbols
 	txt <- gsub("[<>]+", " ", txt)
 	txt <- gsub("&", " and ", txt)
@@ -115,8 +119,7 @@ cleanText <- function(txt) {
 	txt <- gsub("(,)+", " ", txt)
 	#replace the rest of punctuation with single dots
 	txt <- gsub("( )+-( )+", " . ", txt)
-	txt <- gsub('[—!?;:….]+', " . ", txt)
-	txt <- gsub('[“”\\"()\\{\\}]+', " ", txt)
+	txt <- gsub('[—!?;:…“”\\"()\\{\\}]+', " . ", txt)
 	#remove remaining non characters
 	txt <- gsub("[^0-9A-Za-záéíóúàèìòùäöüßñ.'<>]+", " ", txt)
 	#remove periods in acronyms, so we can analyze them as a single word
@@ -129,38 +132,35 @@ cleanText <- function(txt) {
 	#txt <- gsub("^(.*?)$", "<S> \\1 <S>",txt)
 	#remove duplicate sentence marks, and marks at beggining or end of line
 	txt <- gsub("(<S>[ ]*)+", " <S> ",txt)
-	#txt <- gsub("<S>[ ]*$", "",txt)
-	txt <- gsub("^(\\s)*<S>", "",txt)
+	txt <- gsub("<S>[ ]*$", "",txt)
+	txt <- gsub("^[ ]*<S>", "",txt)
 	#remove duplicates apostrophes
 	txt <- gsub("(^|\\s)('(\\s)*)+(\\s|$)", " ' ", txt)
 	txt <- gsub("''", "'", txt)
 	#remove apostrophes that are alone, ie, with any word
 	txt <- gsub("(^|\\s)'(\\s|$)", " ", txt)
+
 	#remove genitive signs that are alone
 	txt <- gsub("(\\s)'s(\\s|$)", " ", txt)
+
 	#remove single apostrophes in front of a word or at the end
 	txt <- gsub("^'", "", txt)
 	txt <- gsub("(^|\\s)'([a-záéíóúàèìòùäöüßñ<>]+)'?(\\s|$)", "\\1\\2 ", txt)
 	txt <- gsub("(\\s)?([a-záéíóúàèìòùäöüßñ<>]+)'(\\s|$)", "\\1\\2 ", txt)
 	txt <- gsub("\\s'([a-z])", " \\1", txt)
+
 	#remove genitive signs in names and sustantives
 	txt <- removeGenitives(txt)
 
-	#remove extra whitespaces
-	txt <- gsub("\\s\\s+", " ", txt)
-	txt <- stri_trim_both(txt)
-	txt <- gsub(">([a-z])", "> \\1", txt)
-	txt <- gsub("([a-z])<", "\\1 <", txt)
-
-	txt <- gsub("<T><N>(\\s|$)", "<N>", txt)
-	txt <- gsub("<T><T>", "<T>", txt)
-	txt <- gsub("<T><ON> ", "<N> st", txt)
-	txt <- gsub("<S> ([a-z]) <S>", " \\1 ", txt)
-	txt <- gsub("<S> ([a-z]+) <S>", " \\1 ", txt)
-	txt <- gsub("^([a-z]+) <S>", "\\1 ", txt)
+	#fix <S> marks placed incorrectly
 	txt <- gsub(" st <S>", " st ", txt)
+	txt <- gsub(" ft <S>", " ft ", txt)
+	txt <- gsub(" sq <S>", " sq ", txt)
 	txt <- gsub("^st <S>", "st ", txt)
+	txt <- gsub("^ft <S>", "ft ", txt)
+	txt <- gsub("^sq <S>", "sq ", txt)
 	txt <- gsub(" av <S>", " av ", txt)
+	txt <- gsub("^av <S>", " av ", txt)
 	txt <- gsub(" mr <S>", " mr ", txt)
 	txt <- gsub("^mr <S>", "mr ", txt)
 	txt <- gsub("^sgt <S>", "sgt ", txt)
@@ -169,12 +169,37 @@ cleanText <- function(txt) {
 	txt <- gsub("^dep <S>", "dep ", txt)
 	txt <- gsub(" dept <S>", " dept ", txt)
 	txt <- gsub("^dept <S>", "dept ", txt)
+	txt <- gsub(" u <S> s( <S>)? ", "us ", txt)
+	txt <- gsub("a <S> k <S> a ", "aka ", txt)
+	txt <- gsub("v <S> i <S> p (<S>)?", "vip ", txt) #
+	txt <- gsub("d <S> h <S>", "dh ", txt)
+	txt <- gsub("p <S> s <S>", "ps ", txt)
+	txt <- gsub("m <S> s <S>", "ms ", txt)
+	txt <- gsub("r <S> i <S> p( <S>|$)?", "rip ", txt)
+	txt <- gsub("<S> t <S> o <S> p ", " top ", txt)
+
+	txt <- gsub("<T><N>(\\s|$)", "<N>", txt)
+	txt <- gsub("<T><T>", "<T>", txt)
+	txt <- gsub("<T><ON> ", "<N> st", txt)
+	txt <- gsub("<S> ([a-z]) <S>", " \\1 ", txt)
+	txt <- gsub("<S> ([a-z]+) <S>", " \\1 ", txt)
+	txt <- gsub("^([a-z]+) <S>", "\\1 ", txt)
+	txt <- gsub(">([a-z])", "> \\1", txt)
+	txt <- gsub("([a-z])<", "\\1 ", txt)
+
+	#q: ..  a: ...
 	txt <- gsub("q <S>", " ", txt)
+	txt <- gsub("<S> a <S>", "<S> ", txt)
 	txt <- gsub("^a <S>", "", txt)
 	txt <- gsub("^q <S>", "", txt)
-	#txt <- gsub("<S>", "", txt)
+
+	#remove extra whitespaces
+	txt <- stripWhitespace(txt)
+	txt <- stri_trim_both(txt)
+
 	txt
 }
+
 
 no.stem <- c("it's", "he's", "she's", "let's", "here's", "there's", "that's", "how's", "what's",  "who's", "where's")
 

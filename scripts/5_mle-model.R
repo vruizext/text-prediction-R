@@ -14,6 +14,7 @@ filter <- c("<URL>", "<U>", "<S>", "<NN>", "<ON>", "<N>", "<T>" , "<D>", "<PN>",
 #for production app, filter special words in the output
 #tetr <- tetr[!w4 %in% filter]
 
+#build the eight models, which will be linearly interpolated
 k.min = 2; n.top = 3;
 model = list()
 model$w1w2w3 <- model.w1w2w3(tetr, k.min, n.top)

@@ -42,7 +42,7 @@ predict.backoff <- function(model, t1, t2, t3) {
 }
 
 
-#prediction using interpolation of 4grams, 3grams and 2grams models
+#prediction using linear interpolation of 4grams, 3grams and 2grams models
 predict.interp <- function(model, t1, t2, t3) {
 	if(is.null(model$coef)) {
 		#coefficients for interpolation, default value
@@ -81,7 +81,7 @@ predict.interp <- function(model, t1, t2, t3) {
 }
 
 
-#prediction using interpolation, model extended with partial matches
+#prediction using linear interpolation, model extended with partial matches
 predict.interp.ext <- function(model, t1, t2, t3) {
 	if(is.null(model$coef)) {
 		#coefficients for interpolation, default values, optimized for max likelihood
