@@ -3,44 +3,53 @@ setwd(paste0(dirname(parent.frame(2)$ofile), "/.."))
 source("scripts/globals.R")
 source("model/ngrams.R")
 
-#split corpus in unigrams,
-data <- list(corpus = "all.train")
-data$txt <- readRDS("data/clean/all.train.rds")
-data$chunkSize <- 10000
-data$lines <- length(data$txt)
-data$ids <- initIds(data)
-data$ng <- 1
-data$suffix <- "unig"
+filter <- c("<URL>", "<U>", "<S>", "<NN>", "<ON>", "<N>", "<T>" , "<D>", "<PN>", "<EMAIL>", "<HASH>", "<YN>", "<TW>")
 
-data <- nGramization(data)
+summary = list()
+for (corpus in c("blogs", "news", "twitter", "all")) {
+	#split corpus in unigrams,
+	data <- list(corpus = corpus)
+	data$txt <- readRDS(sprintf("%s/%s.train.clean.rds", data.clean.dir, corpus))
+	data$chunkSize <- 10000
+	data$lines <- length(data$txt)
+	data$ids <- initIds(data)
+	data$ng <- 1
+	data$suffix <- "unig"
+	data <- nGramization(data)
 
-#get probability distribution of unigrams
-unig <- data$ngrams[order(-k)]
-unig[-1, pr:= k / sum(k)] #discard <S>
-unig[-1, sum.pr:= round(100 * cumsum(pr), 4)]
-#unig[k >=100]
+	#get probability distribution of unigrams
+	unig <- data$ngrams[order(-k)]
+	idx <- which(unig$w == "<S>")
+	unig[-idx, pr:= k / sum(k)] #discard <S>
+	unig[-idx, sum.pr:= round(100 * cumsum(pr), 4)]
+	ngram.file <- sprintf("%s/%s.%s.rds", model.data.dir, data$corpus, data$suffix)
+	saveRDS(unig, ngram.file)
 
-#total words and avg words per line
-words.total <- sum(unig$k[-1])
-words.line <- words.total / (data$chunkSize * nrow(data$ids))
+	#save dictionaries, 95, 97.5 and 99 quantile
+	dict <- c(unig[sum.pr <= 95, w], "<S>")
+	dict <- dict[order(dict)]
+	saveRDS(dict, sprintf("%s/dict.%s.pr.%s.rds", model.data.dir, corpus, "95"))
 
-#get quantiles 95, 97.5 and 99
-unig.pr.95 <- unig[sum.pr <= 95]
-unig.pr.975 <- unig[sum.pr <= 97.5]
-unig.pr.99 <- unig[sum.pr <= 99]
+	dict <- c(unig[sum.pr <= 97.5, w], "<S>")
+	dict <- dict[order(dict)]
+	saveRDS(dict, sprintf("%s/dict.%s.pr.%s.rds", model.data.dir, corpus, "975"))
 
-hist(log10(unig.pr.95$k), breaks = 50)
-hist(log10(unig.pr.975$k), breaks = 50)
+	dict <- c(unig[sum.pr <= 99, w], "<S>")
+	dict <- dict[order(dict)]
+	saveRDS(dict, sprintf("%s/dict.%s.pr.%s.rds", model.data.dir, corpus, "99"))
 
-#save dictionaries, 95, 97.5 and 99 quantile
-dict <- c(unig.pr.95$w, "<S>")
-dict <- dict[order(dict)]
-saveRDS(dict, "model/data/dict.all.pr.95.rds")
+	#save stats to summary
+	stats = list()
+	stats$words.total <- sum(unig$k[-idx])
+	stats$words.line <- round(sum(unig$k[-idx]) / (data$chunkSize * nrow(data$ids)), 2)
+	stats$words.length <- round(unig[-idx, sum(nchar(w) * k)] / sum(unig$k[-idx]), 2)
+	stats$stop.words <- unig[w %in% stopwords(), round(100 * sum(pr), 2)]
+	summary[[corpus]] = stats
 
-dict <- c(unig.pr.975$w, "<S>")
-dict <- dict[order(dict)]
-saveRDS(dict, "model/data/dict.all.pr.975.rds")
+}
 
-dict <- c(unig.pr.99$w, "<S>")
-dict <- dict[order(dict)]
-saveRDS(dict, "model/data/dict.all.pr.99.rds")
+saveRDS(summary, "model/data/unig.summary.rds")
+#hist(log10(unig.pr.95$k), breaks = 50)
+#hist(log10(unig.pr.975$k), breaks = 50)
+
+
