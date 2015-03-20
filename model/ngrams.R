@@ -2,14 +2,25 @@ library(RWeka)
 library(R.utils)
 library(data.table)
 
-
+#' create an Ngram tokenizer, that uses \code{RWeka::NGramTokenizer} to split a
+#' text in ngrams
+#' @param ng, an integer, indicates length of the ngrams, i.e., for ng = 2, the
+#' text will be splitted in bigrams, for ng = 3, in trigrams, etc.
+#' @return a function that accepts text as input and returns a vector of ngrams
 tokenizer <- function(ng) {
+	#' splits a string in ngrams
+	#' @param x the string to be tokenized
+	#' @return a vector containing the ngrams
 	t <- function(x)
 			RWeka::NGramTokenizer(x, RWeka::Weka_control(min = ng, max = ng, delimiters = " \\r\\n\\t"))
 }
 
 
-#build ngrams table
+#' build a ngrams data table
+#' @param data a list that holds all the config settings
+#' @param data$txt vector, text corpus that is being processed, one document per line
+#' @param data$lines integer, number of documents in the corpus
+#'
 nGramization <- function(data) {
 	if (is.null(data$txt)) {
 		data$txt <- readRDS(sprintf("%s/%s.rds", data.clean.dir, data$corpus))
@@ -44,7 +55,7 @@ nGramization <- function(data) {
 }
 
 
-#split data in Ngram chunks, save 1 file per chunk
+#' split data in Ngram chunks, save 1 file per chunk
 buildNGramChunks <- function(data) {
 	ids <- data$ids
 	txt <- data$txt
@@ -63,7 +74,7 @@ buildNGramChunks <- function(data) {
 }
 
 
-#merge file chunks to obtain one single data table
+#' merge file chunks to obtain one single data table
 mergeFileChunks <- function(data) {
 	chunk.file <- sprintf("%s/%s.%s.%%d.rds", model.data.dir, data$corpus, data$suffix)
 	tmp.file <- sprintf(chunk.file, 1)
@@ -105,7 +116,7 @@ nGramizeChunk <- function(lines, tokenizer, maxLength, ng, dict = NULL) {
 		} else if (ng == 4) {
 			dt <- dt[, list(k=sum(k)), by=list(w1, w2, w3, w4)]
 		}
-		# need to rebuild the w column, since it might have changed
+		# need to rebuild the w column, since it might have changed due to the <U>'s
 		dt$w <- do.call(paste,  subset(dt, select = !colnames(dt) %in% c("k", "w")))
 	}
 	dt
